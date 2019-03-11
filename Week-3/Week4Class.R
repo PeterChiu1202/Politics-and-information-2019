@@ -31,6 +31,7 @@ filter(data0709,grepl("柯文哲",data0709$Page_Name)==T)%>%count() # 222
 filter(data0709,grepl("丁守中粉絲團",data0709$Page_Name)==T)%>%count() # 231
 filter(data0709,grepl("姚文智",data0709$Page_Name)==T)%>%count() # 329
 
+# 取出柯文哲、丁守中、姚文智在7~9月的發文情況
 Ke0709 = filter(data0709,grepl("柯文哲",data0709$Page_Name)==T)
 Din0709 = filter(data0709,grepl("丁守中粉絲團",data0709$Page_Name)==T)
 Yao0709 = filter(data0709,grepl("姚文智",data0709$Page_Name)==T)
@@ -39,6 +40,7 @@ Ke0709$Date=as.POSIXct(Ke0709$Date, format = "%Y/%m/%d %H:%M:%S")
 Din0709$Date=as.POSIXct(Din0709$Date, format = "%Y/%m/%d %H:%M:%S")
 Yao0709$Date=as.POSIXct(Yao0709$Date, format = "%Y/%m/%d %H:%M:%S")
 
+# 三人發文的點讚數折線圖
 plot(Ke0709$Date, Ke0709$LIKE_COUNT, type = "l")
 plot(Din0709$Date, Din0709$LIKE_COUNT, type = "l")
 plot(Yao0709$Date, Yao0709$LIKE_COUNT, type = "l")
