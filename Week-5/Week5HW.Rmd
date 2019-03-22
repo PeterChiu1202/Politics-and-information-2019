@@ -1,0 +1,129 @@
+---
+title: "Week5HW"
+author: "Peter Chiu"
+date: "2019/3/22"
+output: html_document
+---
+
+# **邱老練習**
+
+# 目標：擷取柯文哲和韓國瑜在2018/1~2019/1的臉書粉絲團發文情況
+
+## 將各月份的data合併成一個database
+```{r}
+library(readr)
+Jan.18 <- read_csv("201801_data.csv")
+Feb.18 <- read_csv("201802_data.csv")
+Mar.18 <- read_csv("201803_data.csv")
+Apr.18 <- read_csv("201804_data.csv")
+May.18 <- read_csv("201805_data.csv")
+Jun.18 <- read_csv("201806_data.csv")
+Jul.18 <- read_csv("201807_data.csv")
+Aug.18 <- read_csv("201808_data.csv")
+Sep.18 <- read_csv("201809_data.csv")
+Oct.18 <- read_csv("201810_data.csv")
+Nov.18 <- read_csv("201811_data.csv")
+Dec.18 <- read_csv("201812_data.csv")
+Jan.19 <- read_csv("201901_data.csv")
+
+alldata=rbind(Jan.18, Feb.18, Mar.18, Apr.18, May.18, Jun.18,
+              Jul.18, Aug.18, Sep.18, Oct.18, Nov.18, Dec.18, Jan.19)
+```
+
+## 檢查"alldata"
+```{r}
+nrow(alldata)
+names(alldata)
+```
+### "alldata"中共有410913筆發文資料，共18個變數種類。
+
+## 擷取韓國瑜的粉絲專頁發文
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+Han <- alldata %>% 
+  filter(Page_Name == "韓國瑜") %>%
+  select(Page_Name, Page_ID, Date, All_Reaction_Count, LIKE_COUNT, Comment_Count,
+         Share_Count, Message, Type)
+```
+
+## 擷取柯文哲的粉絲專頁發文
+```{r}
+Ke <- alldata %>% 
+  filter(Page_Name == "柯文哲") %>%
+  select(Page_Name, Page_ID, Date, All_Reaction_Count, LIKE_COUNT, Comment_Count,
+         Share_Count, Message, Type)
+```
+
+### **我選擇的變數為：日期、所有針對發文的心情、按讚數、留言數、分享數、發文(主要計算文字數)、發文型態(文字、照片、影片等)。**
+
+## 確認兩人的發文狀況
+```{r}
+nrow(Han)
+nrow(Ke)
+```
+### 韓國瑜在2018/1~2019/1發文347篇；柯文哲為673篇。
+
+## 設定日期時間格式
+```{r}
+Han$Date=as.POSIXct(Han$Date,format = '%Y/%m/%d%H:%M:%S')
+Ke$Date=as.POSIXct(Ke$Date,format = '%Y/%m/%d %H:%M:%S')
+```
+
+## 字串長度
+```{r}
+Han.mes <- nchar(Han$Message)
+summary(Han.mes)
+Ke.mes <- nchar(Ke$Message)
+summary(Ke.mes)
+
+```
+
+### 韓國瑜發文平均234個字，最多有3022個字，中位數為205個字。
+### 柯文哲發文平均317.3個字，最多有3030個字，中位數為323.5個字(雖然不知道.5是怎麼來的)。
+
+## 分月份
+```{r}
+HanMonth <-Han%>%group_by(month=format(Date,"%Y/%m"))%>%count()%>%mutate(type="Han")
+KeMonth <-Ke%>%group_by(month=format(Date,"%Y/%m"))%>%count()%>%mutate(type="Ke")
+
+Month_rank=rbind(HanMonth, KeMonth)%>%arrange((month))
+```
+
+
+# **繪圖**
+## *長條圖*
+```{r}
+ggplot(Month_rank,aes(x=month,y=n,fill=type))+
+  geom_bar(stat="identity",position = "dodge")
+#ggplot(Month_rank,aes(x=month,y=n,fill=type))+
+#  geom_bar(stat="identity")
+```
+
+### 韓國瑜在2018/5以前，發文頻率不高，隨後逐漸上升，但始終未超越柯文哲。
+
+## *折線圖*
+```{r}
+ggplot(Month_rank,aes(x=month,y=n,group=type,color=type))+geom_line()
+```
+
+## *盒狀圖*
+```{r}
+ggplot(Month_rank,aes(x=month,y=n))+geom_boxplot()
+```
+
+### 這是兩人合計的發文數量。
+
+## *點狀圖*
+```{r}
+ggplot(head(Han,347),aes(x=Share_Count,y=All_Reaction_Count))+
+  geom_point()
+ggplot(head(Ke,673),aes(x=Share_Count,y=All_Reaction_Count))+
+  geom_point()
+```
+
+### 點狀圖我用於X軸(分享數)與Y軸(所有心情數)，由此可見兩者似乎成正比。
+
+
+
