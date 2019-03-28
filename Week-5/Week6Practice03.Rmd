@@ -1,0 +1,126 @@
+---
+title: "Week6Practice03"
+author: "Peter Chiu"
+date: "2019/3/28"
+output: html_document
+---
+
+# Week 6 課後練習
+```{r message=FALSE, warning=FALSE}
+# rm(list=ls())
+library(tidyverse)
+load("AllData.rda")
+```
+
+## 這是我之前將2018/1~2019/1所有粉絲專頁的發文資料合併後另存成rda檔。
+
+## 擷取照片型態的資料
+## 來看看韓國瑜和柯文哲的照片獲得的回應狀況
+```{r warning=FALSE}
+photomatrix = filter(alldata, Type == "photo")
+```
+
+## 擷取所有影片資料中只有韓國瑜個人粉絲專頁的照片
+```{r warning=FALSE}
+HanPhoto = filter(photomatrix, Page_Name == "韓國瑜")
+```
+
+## 擷取所有影片資料中只有柯文哲個人粉絲專頁的照片
+```{r warning=FALSE}
+KePhoto = filter(photomatrix, Page_Name == "柯文哲")
+```
+
+## 擷取所有影片資料中有韓國瑜個人粉絲專頁以及其他外圍粉絲專頁的照片
+```{r warning=FALSE}
+Hangroup.Photo = filter(photomatrix, grepl("韓國瑜", photomatrix$Page_Name) == TRUE)
+```
+
+## 擷取所有影片資料中有柯文哲個人粉絲專頁以及其他外圍粉絲專頁的照片
+```{r warning=FALSE}
+Kegroup.Photo = filter(photomatrix, grepl("柯文哲", photomatrix$Page_Name) == TRUE)
+```
+
+## 看看韓國瑜和柯文哲的個人粉絲專頁與外圍粉絲團
+```{r}
+table(Hangroup.Photo$Page_Name)
+table(Kegroup.Photo$Page_Name)
+```
+
+## 找出韓國瑜在發布的照片中的臉友回應狀況
+```{r}
+HanComment = data.frame(HanPhoto$Page_Name, HanPhoto$Comment_Count)
+HangroupComment = Hangroup.Photo[, c(2,13,15)]
+```
+
+## 找出柯文哲在發布的照片中的臉友回應狀況
+```{r}
+KeComment = data.frame(KePhoto$Page_Name, KePhoto$Comment_Count)
+KegroupComment = Kegroup.Photo[, c(2,13,15)]
+```
+
+# 畫出韓國瑜 & 柯文哲的照片發文數量以及讀者回文數量
+## 韓國瑜
+```{r warning=FALSE}
+library(ggplot2)
+ggplot() + geom_bar(data = HangroupComment, aes(x=Page_Name) )
+
+ggplot() + geom_bar( data = HangroupComment, 
+                     aes(x=Page_Name, y=Comment_Count, group = Page_Name),
+                     stat="identity")
+```
+
+### 韓國瑜外圍粉絲專頁發文也不少，但韓國瑜個人的粉絲團獲得的回應較多。
+### 有意思的是「韓國瑜新聞網」發文數比「韓國瑜粉絲團」還多，但相對獲得的回應卻是比「韓國瑜粉絲團」少一些。
+
+## 柯文哲
+```{r warning=FALSE}
+ggplot() + geom_bar(data = KegroupComment, aes(x=Page_Name) )
+
+ggplot() + geom_bar( data = KegroupComment, 
+                     aes(x=Page_Name, y=Comment_Count, group = Page_Name),
+                     stat="identity")
+```
+
+## 兩份資料合併
+```{r}
+HanKeComment = rbind(HangroupComment, KegroupComment)
+ggplot() + geom_bar(data = HanKeComment, aes(x=Page_Name) )
+
+ggplot() + geom_bar( data = HanKeComment, 
+                     aes(x=Page_Name, y=Comment_Count, group = Page_Name),
+                     stat="identity")
+```
+
+## 由此可得知，韓國瑜的外圍粉絲團發文比柯文哲的外圍粉絲團還多，相同地，獲得的回應數也較多。雖然無法與柯文哲和韓國瑜的個人粉專相比，但至少比柯文哲的外圍粉絲團多一些。
+
+## 依照page來源，將同一page不同發文時間的文章進行合併
+```{r}
+HanKeMessage = HanKeComment %>% group_by(Page_Name) %>% 
+  mutate(messageByName = paste0(Message, collapse = ""))
+
+id = which(duplicated(HanKeMessage$Page_Name) == FALSE)
+
+HanKeMessageAll = HanKeMessage[id,c(1,4)]
+```
+
+## 目前只能到這裡，結巴的部分目前還不行。
+
+## 清洗內文，只留下中文字後進行斷詞，只取出詞長度為兩字以上的詞
+```{r}
+# library(jiebaRD)
+# library(jiebaR)
+
+# cutter <- worker("tag")
+```
+
+
+
+
+
+
+
+
+
+
+
+
