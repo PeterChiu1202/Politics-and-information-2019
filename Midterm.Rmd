@@ -1,0 +1,203 @@
+---
+title: "Midterm-Part1"
+author: "Peter Chiu"
+date: "2019/4/13"
+output: html_document
+---
+
+# ***2020誰更能與蔡英文一較高下？分析韓國瑜與柯文哲在2018年的個人臉書粉絲專頁發文概況***
+
+## 讀取2018/1 ~ 2019/1所有臉書發文資料
+```{r}
+library(tidyverse)
+load("AllData.rda")
+```
+
+## 檢查資料狀況
+```{r}
+nrow(alldata)
+ncol(alldata)
+names(alldata)
+```
+
+### 本資料檔共有18個變數，410913個觀察值。
+### 這篇主要需要的變數為"Date"、"Page_Name"、"Type"、"All_Reaction_Count"、"LIKE_COUNT"、"Comment_Count"、"Share_Count"以及"Message"等。
+### 基於觀察兩人的發文比較，「時間日期」因素是相當重要的，而發文的「型態」，是屬於文字、相片、還是影片也不可忽略；至於最重要的，則是發文獲得的回應，包括按讚數、各種心情表示、留言以及分享情況；而兩人發文的「內容」才是分析的重頭戲。
+
+## 擷取兩人的粉絲專頁發文資料
+```{r warning=FALSE}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+```
+## 擷取韓國瑜的粉絲專頁
+```{r warning=FALSE}
+Han <- alldata %>% 
+  filter(Page_Name == "韓國瑜") %>%
+  select(Page_Name, Page_ID, Date, All_Reaction_Count, LIKE_COUNT, WOW_COUNT, LOVE_COUNT,
+         HAHA_COUNT, SAD_COUNT, ANGRY_COUNT, Comment_Count,
+         Share_Count, Message, Type)
+# save(Han, file="Han.rda")
+```
+## 擷取柯文哲的粉絲專頁
+```{r warning=FALSE}
+Ke <- alldata %>% 
+  filter(Page_Name == "柯文哲") %>%
+  select(Page_Name, Page_ID, Date, All_Reaction_Count, LIKE_COUNT, WOW_COUNT, LOVE_COUNT,
+         HAHA_COUNT, SAD_COUNT, ANGRY_COUNT, Comment_Count,
+         Share_Count, Message, Type)
+# save(Ke, file="Ke.rda")
+```
+
+```{r}
+nrow(Han)
+nrow(Han)/(365+31)
+nrow(Ke)
+nrow(Ke)/(365+31)
+```
+### 自2018/1 ~ 2019/1的期間，韓國瑜發文數為347篇(平均每日約0.88篇)，柯文哲為673篇(平均每日約1.70篇)。
+
+## 設定日期時間格式
+```{r}
+Han$Date=as.POSIXct(Han$Date,format = '%Y/%m/%d%H:%M:%S')
+Ke$Date=as.POSIXct(Ke$Date,format = '%Y/%m/%d %H:%M:%S')
+```
+
+## 字串長度
+```{r}
+Han.mes <- nchar(Han$Message)
+summary(Han.mes)
+Ke.mes <- nchar(Ke$Message)
+summary(Ke.mes)
+```
+
+### 韓國瑜發文平均234個字，最多有3022個字，中位數為205個字。
+### 柯文哲發文平均317.3個字，最多有3030個字，中位數為323.5個字。
+
+---------------------------
+
+## 分月份
+```{r}
+HanMonth <-Han%>%group_by(month=format(Date,"%Y/%m"))%>%count()%>%mutate(type="Han")
+KeMonth <-Ke%>%group_by(month=format(Date,"%Y/%m"))%>%count()%>%mutate(type="Ke")
+
+Month_rank=rbind(HanMonth, KeMonth)%>%arrange((month))
+```
+
+# **繪圖**
+## *長條圖*
+```{r}
+ggplot(Month_rank,aes(x=month,y=n,fill=type))+
+  geom_bar(stat="identity",position = "dodge")
+```
+
+## *折線圖*
+```{r}
+ggplot(Month_rank,aes(x=month,y=n,group=type,color=type))+geom_line()
+```
+
+### 由此圖可見，柯文哲的發文次數都比韓國瑜要來得高，兩人在2018年11月時發文都明顯增加，但也是因為選舉要到了(11/24)，因此發文頻率增加是可以預期的。
+### 而韓國瑜在2018年4月前發文頻率不高，但從5月開始，突然開始增加發文頻率；而柯文哲除了9月和11月發文較頻繁，其他月份也都差不多。
+
+# **發文型態**
+## 韓國瑜發文型態與獲得回應
+```{r warning=FALSE}
+library(sjPlot)
+table(Han$Type)
+sjp.frq(Han$Type, show.n = T)
+ggplot() + geom_bar( data = Han, 
+                     aes(x=Type, y=All_Reaction_Count, group = Type),
+                     stat="identity")
+
+```
+
+### 韓國瑜發的影片與照片數量差不多，但獲得的回應數則差距不少，而動態發文則是獲得的回應更少。
+### **sjPlot底下的名稱有誤，但我不知如何修改。**
+
+## 柯文哲發文型態與獲得回應
+```{r}
+table(Ke$Type)
+sjp.frq(Ke$Type, show.n = T)
+ggplot() + geom_bar( data = Ke, 
+                     aes(x=Type, y=All_Reaction_Count, group = Type),
+                     stat="identity")
+```
+
+### 這裡有個有趣的現象：柯文哲發的影片數量比照片還多很多，但照片獲得的回應數卻遠高於影片。
+### 另外，柯文哲雖然也分享不少連結，但獲得的回應卻不如數量更少的動態發文。
+
+---------------------------
+
+## *觀察粉絲專頁反應與分享狀況(點狀圖)*
+### 這裡我使用「分享數目」(X軸)與「所有心情數量」(Y軸)
+## 韓國瑜
+```{r}
+ggplot(head(Han,347),aes(x=Share_Count,y=All_Reaction_Count))+
+  geom_point()
+```
+
+## 柯文哲
+```{r}
+ggplot(head(Ke,673),aes(x=Share_Count,y=All_Reaction_Count))+
+  geom_point()
+```
+
+### 兩人獲得的反應其實差異頗大，主因韓國瑜粉絲專頁按讚人數為746301人(2019/4/13 16:37)，柯文哲粉絲專頁按讚人數則為2112062人(2019/4/13 16:38)，按讚人數較多的粉絲專頁，獲得的回應數較多也是可預期的。
+
+---------------------------
+
+## **探究韓國瑜與柯文哲的外圍粉絲團**
+```{r warning=FALSE}
+HanGroup = filter(alldata, grepl("韓國瑜", alldata$Page_Name) == TRUE)
+KeGroup = filter(alldata, grepl("柯文哲", alldata$Page_Name) == TRUE)
+# save(HanGroup, file="HanG.rda")
+# save(KeGroup, file="HanG.rda")
+```
+
+## 看看韓國瑜和柯文哲的個人粉絲專頁與外圍粉絲團
+```{r}
+table(HanGroup$Page_Name)
+table(KeGroup$Page_Name)
+```
+
+# *畫出韓國瑜與柯文哲的發文數量以及讀者心情數量*
+## 韓國瑜
+```{r warning=FALSE}
+library(ggplot2)
+ggplot() + geom_bar(data = HanGroup, aes(x=Page_Name) )
+ggplot() + geom_bar( data = HanGroup, 
+                     aes(x=Page_Name, y=All_Reaction_Count, group = Page_Name),
+                     stat="identity")
+```
+
+### 韓國瑜個人的粉專是上圖中第四個
+### 「高雄選韓國瑜News」發文數量比韓國瑜本人的粉專還多，不過獲得的回應當然比不上韓國瑜。
+
+## 柯文哲
+```{r}
+ggplot() + geom_bar(data = KeGroup, aes(x=Page_Name) )
+ggplot() + geom_bar( data = KeGroup, 
+                     aes(x=Page_Name, y=All_Reaction_Count, group = Page_Name),
+                     stat="identity")
+```
+
+### 柯文哲個人的粉專是上圖第六個
+### 雖然柯文哲外圍的粉專有一些也發文不少，不過回應數卻是柯文哲個人粉專一枝獨秀。
+
+## 將同一page不同發文時間的文章進行合併
+```{r warning=FALSE}
+HanMessage = Han %>% group_by(Page_Name) %>% 
+  mutate(messageByName = paste0(Message, collapse = ""))
+id = which(duplicated(HanMessage$Page_Name) == FALSE)
+HanMessageAll = HanMessage[id,c(1,15)]
+KeMessage = Ke %>% group_by(Page_Name) %>% 
+  mutate(messageByName = paste0(Message, collapse = ""))
+id = which(duplicated(KeMessage$Page_Name) == FALSE)
+KeMessageAll = KeMessage[id,c(1,15)]
+
+# save(HanMessageAll, file="HanMA.rda")
+# save(KeMessageAll, file="KeMA.rda")
+```
+
+## 初步的數量分析到此結束，文字分析請見下篇。
+
